@@ -6,7 +6,9 @@
 
 # include_recipe "rails"
 include_recipe 'apt::default'
-include_recipe 'passenger_apache2'
+
+# FIXME uncomment this!
+# include_recipe 'passenger_apache2'
 
 user = "ubuntu"
 
@@ -35,11 +37,14 @@ apt_repository 'passenger' do
   # not_if File.exists? "/etc/apt/sources.list.d/passenger.list"
 end
 
-package 'libapache2-mod-passenger' do
-  options '--force-yes -o Dpkg::Options::="--force-confdef"'
-  # not sure why I need this not_if guard:
-   not_if "dpkg --get-selections|grep -q libapache2-mod-passenger"
-end
+
+# FIXME 1) figure out why this seems to hang
+# 2) uncomment when provisioning "for real"
+# package 'libapache2-mod-passenger' do
+#   options '--force-yes -o Dpkg::Options::="--force-confdef"'
+#   # not sure why I need this not_if guard:
+#    not_if "dpkg --get-selections|grep -q libapache2-mod-passenger"
+# end
 
 package 'git'
 
@@ -62,15 +67,22 @@ git "/home/#{user}/.rbenv/plugins/ruby-build" do
     user user
 end
 
-%w[build-essential bison openssl libreadline6 libreadline6-dev
-  zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-0
-  libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev autoconf
-  libc6-dev ssl-cert].each do |p|
-    package p do
-      options '--force-yes -o Dpkg::Options::="--force-confdef" '
-      action :install
-    end
-  end
+# FIXME uncomment this when possible...
+# %w[build-essential bison openssl libreadline6 libreadline6-dev
+#   zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-0
+#   libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev autoconf
+#   libc6-dev ssl-cert].each do |p|
+#     package p do
+#       options '--force-yes -o Dpkg::Options::="--force-confdef" '
+#       action :install
+#     end
+#   end
+
+# this is the only one from above that seems needed so far
+# (at least by the gems in the Gemfile)
+%w[libsqlite3-dev].each do |p|
+  package p
+end
 
 execute 'install ruby' do
   user user
@@ -119,6 +131,38 @@ execute 'bundle install' do
   command "/home/#{user}/.rbenv/shims/bundle install && touch /tmp/bundle_install"
   environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
   # don't guard.
+end
+
+## The following stuff assumes that the node has
+## the secret key for decrypting data bag items.
+
+file "/home/#{user}/app/auth.yml" do
+  content data_bag_item('IssueTrackerConfig',
+    'IssueTrackerConfig').raw_data['value'].to_yaml
+  owner user
+  group user
+  mode '0755'
+end
+
+file "/etc/ssl/certs/_.bioconductor.org.crt" do
+  content data_bag_item('bioc-ssl', 'bioconductor.org.crt').raw_data['value']
+  owner "root"
+  group "root"
+  mode '0644'
+end
+
+file "/etc/ssl/private/bioconductor.org.key" do
+  content data_bag_item('bioc-ssl', 'bioconductor.org.key').raw_data['value']
+  owner "root"
+  group "root"
+  mode '0400'
+end
+
+file "/etc/ssl/certs/gd_bundle-g2-g1.crt" do
+  content data_bag_item('bioc-ssl', 'gd_bundle-g2-g1.crt').raw_data['value']
+  owner "root"
+  group "root"
+  mode '0644'
 end
 
 

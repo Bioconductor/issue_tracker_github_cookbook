@@ -4,6 +4,7 @@ driver:
 
 provisioner:
   name: chef_zero
+  data_bags_path: ./test/data_bags
 
 # Uncomment the following verifier to leverage Inspec instead of Busser (the
 # default verifier)
@@ -12,6 +13,8 @@ provisioner:
 
 platforms:
   - name: ubuntu-14.04
+    # driver_config:
+    #   ssh_key: "/Users/dtenenba/.ssh/id_rsa"
 
 suites:
   - name: default

@@ -1,0 +1,4 @@
+{
+    "id": "IssueTrackerConfig",
+    "value": {"auth_key":"abc1234","issue_repo":"someone/Contributions","email_recipient":"approvers@somewhere.org","email_recipient_name":"Ap Provers","aws":{"region":"us-east-1","aws_access_key_id":"xxx","aws_secret_access_key":"xxx"},"stomp":{"broker":"stomp.broker.com","port":61613}}
+}
