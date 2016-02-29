@@ -8,7 +8,7 @@
 include_recipe 'apt::default'
 
 # FIXME uncomment this!
-# include_recipe 'passenger_apache2'
+#include_recipe 'passenger_apache2'
 
 user = "ubuntu"
 
@@ -35,6 +35,13 @@ apt_repository 'passenger' do
   keyserver 'keyserver.ubuntu.com'
   # does this need a not_if? hopefully not.
   # not_if File.exists? "/etc/apt/sources.list.d/passenger.list"
+end
+
+package 'apache2'
+
+execute 'install apache2 ssl module' do
+  command "a2enmod ssl"
+  not_if "apache2ctl -M |grep -q ssl"
 end
 
 
