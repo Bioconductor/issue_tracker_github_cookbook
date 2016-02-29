@@ -118,7 +118,7 @@ execute 'bundle install' do
   cwd "/home/#{user}/app"
   command "/home/#{user}/.rbenv/shims/bundle install && touch /tmp/bundle_install"
   environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
-  not_if File.exists? "/tmp/bundle_install"
+  # don't guard.
 end
 
 
