@@ -6,4 +6,6 @@ description 'Installs/Configures issue_tracker_github'
 long_description 'Installs/Configures issue_tracker_github'
 version '0.1.0'
 
+depends 'passenger_apache2', '~> 2.3.0'
 depends 'apt', '~> 2.9.2'
+#depends 'rails'
