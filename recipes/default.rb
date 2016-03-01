@@ -10,14 +10,15 @@ include_recipe 'apt::default'
 # FIXME uncomment this!
 #include_recipe 'passenger_apache2'
 
-user = "ubuntu"
+user = "www-data"
+userhome = "/var/www"
 
-user user do
-  home "/home/#{user}"
-  shell "/bin/bash"
-  manage_home true
-  action :create
-end
+# user user do
+#   home "#{userhome}"
+#   shell "/bin/bash"
+#   manage_home true
+#   action :create
+# end
 
 
 #pkgs = %W{build-essential gcc apache2 }
@@ -37,7 +38,21 @@ apt_repository 'passenger' do
   # not_if File.exists? "/etc/apt/sources.list.d/passenger.list"
 end
 
-package 'apache2'
+
+package 'libapache2-mod-passenger' do
+  options '--force-yes -o Dpkg::Options::="--force-confdef"'
+  # not sure why I need this not_if guard:
+   not_if "dpkg --get-selections|grep -q libapache2-mod-passenger"
+end
+
+package 'apache2' # creates 'user' user and 'userhome' directory
+
+directory userhome do
+  action :create
+  owner user
+  group user
+end
+
 
 execute 'install apache2 ssl module' do
   command "a2enmod ssl"
@@ -45,31 +60,23 @@ execute 'install apache2 ssl module' do
 end
 
 
-# FIXME 1) figure out why this seems to hang
-# 2) uncomment when provisioning "for real"
-# package 'libapache2-mod-passenger' do
-#   options '--force-yes -o Dpkg::Options::="--force-confdef"'
-#   # not sure why I need this not_if guard:
-#    not_if "dpkg --get-selections|grep -q libapache2-mod-passenger"
-# end
-
 package 'git'
 
-git "/home/#{user}/app" do
+git "#{userhome}/app" do
   repository "https://github.com/Bioconductor/issue_tracker_github.git"
   user user
 end
 
-git "/home/#{user}/.rbenv" do
+git "#{userhome}/.rbenv" do
   repository 'https://github.com/sstephenson/rbenv.git'
   user user
 end
 
-directory "/home/#{user}/.rbenv/plugins" do
+directory "#{userhome}/.rbenv/plugins" do
   user user
 end
 
-git "/home/#{user}/.rbenv/plugins/ruby-build" do
+git "#{userhome}/.rbenv/plugins/ruby-build" do
     repository 'https://github.com/sstephenson/ruby-build.git'
     user user
 end
@@ -93,57 +100,57 @@ end
 
 execute 'install ruby' do
   user user
-  command "/home/#{user}/.rbenv/bin/rbenv install 2.3.0"
-  not_if "/home/#{user}/.rbenv/bin/rbenv versions |grep -q 2.3.0"
-  cwd "/home/#{user}"
-  environment({PATH:  "#{ENV['PATH']}:/home/#{user}/.rbenv/bin",
-    RBENV_ROOT: "/home/#{user}/.rbenv"})
+  command "#{userhome}/.rbenv/bin/rbenv install 2.3.0"
+  not_if "#{userhome}/.rbenv/bin/rbenv versions |grep -q 2.3.0"
+  cwd userhome
+  environment({PATH:  "#{ENV['PATH']}:#{userhome}/.rbenv/bin",
+    RBENV_ROOT: "#{userhome}/.rbenv"})
 end
 
 execute 'set global ruby' do
   user user
-  command "/home/#{user}/.rbenv/bin/rbenv global 2.3.0"
-  environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
-  not_if "/home/#{user}/.rbenv/bin/rbenv version |grep -q 2.3.0"
+  command "#{userhome}/.rbenv/bin/rbenv global 2.3.0"
+  environment({RBENV_ROOT: "#{userhome}/.rbenv"})
+  not_if "#{userhome}/.rbenv/bin/rbenv version |grep -q 2.3.0"
 end
 
 
 execute 'rehash' do
   user user
-  command "/home/#{user}/.rbenv/bin/rbenv rehash"
-  environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
+  command "#{userhome}/.rbenv/bin/rbenv rehash"
+  environment({RBENV_ROOT: "#{userhome}/.rbenv"})
   # how to guard?
 end
 
 
 execute 'install bundler' do
   user user
-  command "/home/#{user}/.rbenv/shims/gem install bundler"
-  environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
+  command "#{userhome}/.rbenv/shims/gem install bundler"
+  environment({RBENV_ROOT: "#{userhome}/.rbenv"})
   # how to guard?
-  not_if "/home/#{user}/.rbenv/shims/gem list |grep -q bundler"
+  not_if "#{userhome}/.rbenv/shims/gem list |grep -q bundler"
 end
 
 execute 'rehash again' do
   user user
-  command "/home/#{user}/.rbenv/bin/rbenv rehash"
-  environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
+  command "#{userhome}/.rbenv/bin/rbenv rehash"
+  environment({RBENV_ROOT: "#{userhome}/.rbenv"})
   # how to guard?
 end
 
 
 execute 'bundle install' do
   user user
-  cwd "/home/#{user}/app"
-  command "/home/#{user}/.rbenv/shims/bundle install && touch /tmp/bundle_install"
-  environment({RBENV_ROOT: "/home/#{user}/.rbenv"})
+  cwd "#{userhome}/app"
+  command "#{userhome}/.rbenv/shims/bundle install && touch /tmp/bundle_install"
+  environment({RBENV_ROOT: "#{userhome}/.rbenv"})
   # don't guard.
 end
 
 ## The following stuff assumes that the node has
 ## the secret key for decrypting data bag items.
 
-file "/home/#{user}/app/auth.yml" do
+file "#{userhome}/app/auth.yml" do
   content data_bag_item('IssueTrackerConfig',
     'IssueTrackerConfig').raw_data['value'].to_yaml
   owner user
@@ -177,7 +184,7 @@ end
 __END__
 
 web_app "app" do
-  docroot "/home/#{user}/app/public"
+  docroot "#{userhome}/app/public"
   server_name "issues.bioconductor.org"
   rails_env "production"
 end
