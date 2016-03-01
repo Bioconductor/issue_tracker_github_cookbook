@@ -13,12 +13,6 @@ include_recipe 'apt::default'
 user = "www-data"
 userhome = "/var/www"
 
-# user user do
-#   home "#{userhome}"
-#   shell "/bin/bash"
-#   manage_home true
-#   action :create
-# end
 
 
 #pkgs = %W{build-essential gcc apache2 }
@@ -47,6 +41,16 @@ end
 
 package 'apache2' # creates 'user' user and 'userhome' directory
 
+# but we want to be able to log in as 'user'
+user user do
+  home "#{userhome}"
+  shell "/bin/bash"
+  manage_home true
+  action :create
+end
+
+
+# and to own userhome...
 directory userhome do
   action :create
   owner user
@@ -179,12 +183,52 @@ file "/etc/ssl/certs/gd_bundle-g2-g1.crt" do
   mode '0644'
 end
 
-
-
-__END__
-
-web_app "app" do
-  docroot "#{userhome}/app/public"
-  server_name "issues.bioconductor.org"
-  rails_env "production"
+execute "change default ruby used by passenger" do
+  command 'sed -i.bak  "s:/usr/bin/passenger_free_ruby:/var/www/.rbenv/shims/ruby:" passenger.conf'
+  cwd "/etc/apache2/mods-available"
+  not_if "grep -q shims /etc/apache2/mods-available/passenger.conf"
 end
+
+execute "tell apache about passenger app" do
+  command 'sed -i.bak  "s:DocumentRoot /var/www/html:DocumentRoot /var/www/app/public\\n<Directory /path/to/app/public>\\n        Require all granted\\n        Allow from all\\n        Options -MultiViews\\n    </Directory>:" 000-default.conf'
+  cwd "/etc/apache2/sites-available"
+  not_if "grep -q MultiViews /etc/apache2/sites-available/000-default.conf"
+end
+
+link "/etc/apache2/mods-enabled/passenger.conf" do
+  to "/etc/apache2/mods-available/passenger.conf"
+end
+
+link "/etc/apache2/mods-enabled/passenger.load" do
+  to "/etc/apache2/mods-available/passenger.load"
+end
+
+# FIXME probably need a way to guard against unwanted service
+# restarts in production. Not sure yet how to do that.
+service "apache2" do
+  action :restart
+end
+
+# FIXME deal with this issue:
+# App 435 stderr:  [passenger_native_support.so] trying to compile for the current user (www-data) and Ruby interpreter...
+# App 435 stderr:
+# App 435 stderr:      (set PASSENGER_COMPILE_NATIVE_SUPPORT_BINARY=0 to disable)
+# App 435 stderr:
+# App 435 stderr:      Warning: compilation didn't succeed. To learn why, read this file:
+# App 435 stderr:      /tmp/passenger_native_support-141773w.log
+# App 435 stderr:  [passenger_native_support.so] not downloading because passenger wasn't installed from a release package
+# App 435 stderr:  [passenger_native_support.so] will not be used (can't compile or download)
+# App 435 stderr:   --> Passenger will still operate normally.
+# App 484 stdout:
+
+
+# the log file referenced has these contents (lines starting with ## are not actually commented)
+##$ cat /tmp/passenger_native_support-141773w.log
+# current user is: www-data
+# mkdir -p /usr/lib/buildout/ruby/ruby-2.3.0-x86_64-linux
+##Encountered permission error, trying a different directory...
+##-------------------------------
+# mkdir -p /var/www/.passenger/native_support/5.0.26/ruby-2.3.0-x86_64-linux
+# cd /var/www/.passenger/native_support/5.0.26/ruby-2.3.0-x86_64-linux
+# /var/www/.rbenv/versions/2.3.0/bin/ruby /usr/lib/src/ruby_native_extension/extconf.rb
+##/var/www/.rbenv/versions/2.3.0/bin/ruby: No such file or directory -- /usr/lib/src/ruby_native_extension/extconf.rb (LoadError)
