@@ -155,29 +155,37 @@ end
 ## the secret key for decrypting data bag items.
 
 file "#{userhome}/app/auth.yml" do
-  content data_bag_item('IssueTrackerConfig',
-    'IssueTrackerConfig').raw_data['value'].to_yaml
+  # content data_bag_item('IssueTrackerConfig',
+  #   'IssueTrackerConfig').raw_data['value'].to_yaml
+  content Chef::EncryptedDataBagItem.load('IssueTrackerConfig',
+    'IssueTrackerConfig')['value'].to_yaml
   owner user
   group user
   mode '0755'
 end
 
 file "/etc/ssl/certs/_.bioconductor.org.crt" do
-  content data_bag_item('bioc-ssl', 'bioconductor.org.crt').raw_data['value']
+  # content data_bag_item('bioc-ssl', 'bioconductor.org.crt').raw_data['value']
+  content Chef::EncryptedDataBagItem.load('bioc-ssl',
+    'bioconductor.org.crt')['value']
   owner "root"
   group "root"
   mode '0644'
 end
 
 file "/etc/ssl/private/bioconductor.org.key" do
-  content data_bag_item('bioc-ssl', 'bioconductor.org.key').raw_data['value']
+  # content data_bag_item('bioc-ssl', 'bioconductor.org.key').raw_data['value']
+  content Chef::EncryptedDataBagItem.load('bioc-ssl',
+    'bioconductor.org.key')['value']
   owner "root"
   group "root"
   mode '0400'
 end
 
 file "/etc/ssl/certs/gd_bundle-g2-g1.crt" do
-  content data_bag_item('bioc-ssl', 'gd_bundle-g2-g1.crt').raw_data['value']
+  # content data_bag_item('bioc-ssl', 'gd_bundle-g2-g1.crt').raw_data['value']
+  content Chef::EncryptedDataBagItem.load('bioc-ssl',
+    'gd_bundle-g2-g1.crt')['value']
   owner "root"
   group "root"
   mode '0644'

@@ -5,6 +5,7 @@ driver:
 provisioner:
   name: chef_zero
   data_bags_path: ./test/data_bags
+  encrypted_data_bag_secret_key_path: ./secret_for_testing_only
 
 # Uncomment the following verifier to leverage Inspec instead of Busser (the
 # default verifier)
