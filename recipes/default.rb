@@ -7,13 +7,34 @@
 # include_recipe "rails"
 include_recipe 'apt::default'
 
-# FIXME uncomment this!
-#include_recipe 'passenger_apache2'
-
 user = "www-data"
 userhome = "/var/www"
 
 
+# IMPORTANT NOTE! When running on a fresh node in the UB
+# cloud, you have to manually ssh to the node and do this before
+# running chef-client:
+# sudo -s
+#  cd /etc
+# cp hostname hostname.bak
+# echo issues.bioconductor.org > hostname
+# hostname -F hostname
+# hostname
+# Hmm...not sure if that was really necessary, it may be that just
+# running chef-client a couple times fixes it. Or it may be
+# necessary to run chef-client a couple of times but ONLY after
+# making the hostname change.
+# You can then bootstrap as follows:
+# (may need to adjust paths to keys and secrets):
+# knife bootstrap issues.bioconductor.org  -N issues.bioconductor.org \
+# -x ubuntu --secret-file encrypted_data_bag_secret \
+# -i ~/.ub/dtenenba-ub.pem --sudo
+# -- then add this recipe to the run list:
+#  knife node run_list set issues.bioconductor.org \
+# "recipe[issue_tracker_github_cookbook::default]"
+# -- then run chef-client:
+# knife ssh "name:issues.bioconductor.org" -x ubuntu -i ~/.ub/dtenenba-ub.pem \
+# "sudo chef-client"
 
 #pkgs = %W{build-essential gcc apache2 }
 
@@ -21,6 +42,19 @@ userhome = "/var/www"
 # https://www.phusionpassenger.com/library/install/apache/install/oss/trusty/
 
 package 'ruby-dev'
+package 'build-essential'
+
+%w[build-essential openssl libreadline6 libreadline6-dev
+  zlib1g zlib1g-dev libssl-dev libsqlite3-0
+  libsqlite3-dev sqlite3 libxml2-dev autoconf
+  libc6-dev ssl-cert].each do |p|
+    package p do
+      action :install
+    end
+  end
+
+
+
 
 apt_repository 'passenger' do
   uri 'https://oss-binaries.phusionpassenger.com/apt/passenger'
@@ -85,22 +119,6 @@ git "#{userhome}/.rbenv/plugins/ruby-build" do
     user user
 end
 
-# FIXME uncomment this when possible...
-# %w[build-essential bison openssl libreadline6 libreadline6-dev
-#   zlib1g zlib1g-dev libssl-dev libyaml-dev libsqlite3-0
-#   libsqlite3-dev sqlite3 libxml2-dev libxslt1-dev autoconf
-#   libc6-dev ssl-cert].each do |p|
-#     package p do
-#       options '--force-yes -o Dpkg::Options::="--force-confdef" '
-#       action :install
-#     end
-#   end
-
-# this is the only one from above that seems needed so far
-# (at least by the gems in the Gemfile)
-%w[libsqlite3-dev].each do |p|
-  package p
-end
 
 execute 'install ruby' do
   user user
@@ -108,7 +126,8 @@ execute 'install ruby' do
   not_if "#{userhome}/.rbenv/bin/rbenv versions |grep -q 2.3.0"
   cwd userhome
   environment({PATH:  "#{ENV['PATH']}:#{userhome}/.rbenv/bin",
-    RBENV_ROOT: "#{userhome}/.rbenv"})
+    RBENV_ROOT: "#{userhome}/.rbenv",
+    RUBY_CONFIGURE_OPTS: "--disable-install-doc"})
 end
 
 execute 'set global ruby' do
