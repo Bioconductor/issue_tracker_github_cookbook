@@ -29,12 +29,20 @@ userhome = "/var/www"
 # knife bootstrap issues.bioconductor.org  -N issues.bioconductor.org \
 # -x ubuntu --secret-file encrypted_data_bag_secret \
 # -i ~/.ub/dtenenba-ub.pem --sudo
+
+# bootstrap like this if the node is on ec2:
+# knife bootstrap issues.bioconductor.org  --hint ec2  -N issues.bioconductor.org -x ubuntu --secret-file encrypted_data_bag_secret -i ~/.ec2/bioc-default.pem  --sudo
+
+
 # -- then add this recipe to the run list:
 #  knife node run_list set issues.bioconductor.org \
 # "recipe[issue_tracker_github_cookbook::default]"
 # -- then run chef-client:
 # knife ssh "name:issues.bioconductor.org" -x ubuntu -i ~/.ub/dtenenba-ub.pem \
 # "sudo chef-client"
+# like this on ec2:
+# knife ssh "name:issues.bioconductor.org" -x ubuntu -i ~/.ec2/bioc-default.pem  -a ec2.public_ipv4  "sudo chef-client"
+
 
 #pkgs = %W{build-essential gcc apache2 }
 
