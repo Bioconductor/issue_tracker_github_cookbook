@@ -181,6 +181,10 @@ end
 ## The following stuff assumes that the node has
 ## the secret key for decrypting data bag items.
 
+## FIXME (??)Note that when these resources run they log
+## output which may contain sensitive items. Need to figure out
+## how to suppress that.
+
 file "#{userhome}/app/auth.yml" do
   # content data_bag_item('IssueTrackerConfig',
   #   'IssueTrackerConfig').raw_data['value'].to_yaml
