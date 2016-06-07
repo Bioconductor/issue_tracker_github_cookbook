@@ -185,7 +185,7 @@ execute "put rbenv in www-data's path" do
 end
 
 
-execute "put rbenv in www-data's path" do
+execute "eval rbenv init" do
   user user
   command %Q(echo 'eval "$(rbenv init -)"' >> #{userhome}/.bash_profile)
   not_if "grep -q 'rbenv init' #{userhome}/.bash_profile"
