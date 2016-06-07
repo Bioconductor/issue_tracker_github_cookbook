@@ -178,6 +178,22 @@ execute 'bundle install' do
   # don't guard.
 end
 
+execute "put rbenv in www-data's path" do
+  user user
+  command %Q(echo 'export PATH=\$HOME/.rbenv/bin:\$PATH' >> /home/#{user}/.bash_profile)
+  not_if "grep -q rbenv/bin /home/#{user}/.bash_profile"
+end
+
+
+execute "put rbenv in www-data's path" do
+  user user
+  command %Q(echo 'eval "$(rbenv init -)"' >> /home/#{user}/.bash_profile)
+  not_if "grep -q 'rbenv init' /home/#{user}/.bash_profile"
+end
+
+
+
+
 ## The following stuff assumes that the node has
 ## the secret key for decrypting data bag items.
 
