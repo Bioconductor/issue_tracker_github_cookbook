@@ -180,15 +180,15 @@ end
 
 execute "put rbenv in www-data's path" do
   user user
-  command %Q(echo 'export PATH=\$HOME/.rbenv/bin:\$PATH' >> /home/#{user}/.bash_profile)
-  not_if "grep -q rbenv/bin /home/#{user}/.bash_profile"
+  command %Q(echo 'export PATH=\$HOME/.rbenv/bin:\$PATH' >> #{userhome}/.bash_profile)
+  not_if "grep -q rbenv/bin #{userhome}/.bash_profile"
 end
 
 
 execute "put rbenv in www-data's path" do
   user user
-  command %Q(echo 'eval "$(rbenv init -)"' >> /home/#{user}/.bash_profile)
-  not_if "grep -q 'rbenv init' /home/#{user}/.bash_profile"
+  command %Q(echo 'eval "$(rbenv init -)"' >> #{userhome}/.bash_profile)
+  not_if "grep -q 'rbenv init' #{userhome}/.bash_profile"
 end
 
 
